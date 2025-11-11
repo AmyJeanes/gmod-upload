@@ -179,6 +179,9 @@ do
 		"data_static/*.mp3",
 		"data_static/*.wav",
 		"data_static/*.ogg",
+
+		-- Shaders: https://github.com/Facepunch/gmad/commit/fb4baa190eb3769728c3832c7ab03df2ef636040
+		"shaders/*.vcs"
 	}, wildcard2pattern)
 
 	if addon.ignore then -- if specified list of files to ignore.
