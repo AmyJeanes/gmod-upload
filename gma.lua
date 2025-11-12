@@ -188,6 +188,10 @@ do
 		blocklist = map(addon.ignore, wildcard2pattern)
 	end
 
+	-- Convenient defaults
+	table.insert(blocklist, wildcard2pattern(".git/*"))
+	table.insert(blocklist, wildcard2pattern(".github/*"))
+
 	do
 		local dir = assert(io.popen(PATH_SEP == "\\" and "dir /s /b ." or "find . -type f"))
 
