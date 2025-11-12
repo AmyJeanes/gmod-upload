@@ -85,8 +85,14 @@ local function decode(json --[[@param json string]]) ---@return table
 	return object() or array()
 end
 
-local function wildcard2pattern(s --[[@param s string]])
-	return "^%./" .. s:gsub("%.", "%%."):gsub("%*", ".*") .. "$"
+local function glob2pattern(s --[[@param s string]])
+	local inner = s
+		:gsub("%.", "%%.")
+		:gsub("%*%*", "\001") -- temporary placeholder
+		:gsub("%*", "[^/]*")  -- * matches anything except /
+		:gsub("\001", ".*")   -- ** matches anything including /
+
+	return "^%./" .. inner .. "$"
 end
 
 do
@@ -182,15 +188,15 @@ do
 
 		-- Shaders: https://github.com/Facepunch/gmad/commit/fb4baa190eb3769728c3832c7ab03df2ef636040
 		"shaders/*.vcs"
-	}, wildcard2pattern)
+	}, glob2pattern)
 
 	if addon.ignore then -- if specified list of files to ignore.
-		blocklist = map(addon.ignore, wildcard2pattern)
+		blocklist = map(addon.ignore, glob2pattern)
 	end
 
 	-- Convenient defaults
-	table.insert(blocklist, wildcard2pattern(".git/*"))
-	table.insert(blocklist, wildcard2pattern(".github/*"))
+	table.insert(blocklist, glob2pattern(".git/**"))
+	table.insert(blocklist, glob2pattern(".github/**"))
 
 	do
 		local dir = assert(io.popen(PATH_SEP == "\\" and "dir /s /b ." or "find . -type f"))
@@ -198,15 +204,15 @@ do
 		for path in dir:lines() do
 			local normalized = path:gsub(PATH_SEP, "/") -- normalize
 
+			for _, block_pattern in ipairs(blocklist) do
+				if normalized:match(block_pattern) then
+					print("Blocked ", normalized)
+					goto cont
+				end
+			end
+
 			for _, allow_pattern in ipairs(allowlist) do
 				if normalized:match(allow_pattern) then
-					for _, block_pattern in ipairs(blocklist) do
-						if normalized:match(block_pattern) then
-							print("Blocked ", normalized)
-							goto cont
-						end
-					end
-
 					files[#files + 1] = {
 						path = normalized:sub(3), -- strip initial ./ part
 						content = read(path)
@@ -217,6 +223,7 @@ do
 			end
 
 			print("::warning file=" .. normalized .. "::File not whitelisted. Skipping..")
+
 			::cont::
 		end
 
