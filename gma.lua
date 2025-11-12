@@ -199,6 +199,7 @@ do
 	-- Convenient defaults
 	table.insert(blocklist, glob2pattern(".git/**"))
 	table.insert(blocklist, glob2pattern(".github/**"))
+	table.insert(blocklist, glob2pattern(".lua/**"))
 
 	do
 		local dir = assert(io.popen(PATH_SEP == "\\" and "dir /s /b ." or "find . -type f"))
