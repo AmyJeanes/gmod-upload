@@ -21,7 +21,15 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Cache SteamCMD
+      id: cache-steamcmd
+      uses: actions/cache@v4
+      with:
+          path: ~/Steam
+          key: steamcmd-${{ runner.os }}
+
     - name: Download SteamCMD
+      if: steps.cache-steamcmd.outputs.cache-hit != 'true'
       shell: bash
       run: |
         sudo apt-get update
