@@ -6,17 +6,17 @@ branding:
   color: gray-dark
 
 inputs:
+  id:
+    description: "Workshop item id"
+    required: true
   changelog:
     description: "Changelog"
     required: false
     default: ""
-  id:
-    description: "Workshop item id"
-    required: true
-  config:
-    description: "Path of addon.json, or json file to treat as such."
+  folder:
+    description: "Path to folder containing addon files"
     required: false
-    default: "addon.json"
+    default: ${{ github.workspace }}
 
 runs:
   using: "composite"
@@ -37,11 +37,15 @@ runs:
         mkdir ~/Steam
         curl -sqL "https://steamcdn-a.akamaihd.net/client/installer/steamcmd_linux.tar.gz" | tar zxvf - -C ~/Steam
 
-    - name: Setup Lua
-      uses: leafo/gh-actions-lua@v12
-      with:
-          luaVersion: "5.3"
-
+    - name: Create gma file
+      shell: bash
+      run: |
+        wget -O /tmp/fastgmad.zip "https://github.com/WilliamVenner/fastgmad/releases/download/v0.2.0/fastgmad_linux.zip"
+        unzip /tmp/fastgmad.zip -d /tmp/fastgmad
+        chmod +x /tmp/fastgmad/fastgmad
+        mkdir -p /tmp/addon
+        /tmp/fastgmad/fastgmad create -folder . -out /tmp/addon/${{ inputs.id }}.gma
+      working-directory: ${{ inputs.folder }}
     - name: Run gma packer
       shell: bash
       run: |
@@ -50,19 +54,21 @@ runs:
     - name: Create .vdf file
       shell: bash
       run: |
-        cat > workshop.vdf << EOF
+        cat > ${{ inputs.id }}.vdf << EOF
           "workshopitem" {
             "appid" "4000"
             "publishedfileid" "${{ inputs.id }}"
-            "contentfolder" "`pwd`/${{ inputs.id }}.gma"
+            "contentfolder" "/tmp/addon/${{ inputs.id }}.gma"
             "changenote" "${{ inputs.changelog }}"
           }
         EOF
+      working-directory: /tmp/addon
 
     - name: Run SteamCMD
       shell: bash
       run: |
-        ~/Steam/steamcmd.sh +login $STEAM_USERNAME $STEAM_PASSWORD +workshop_build_item `pwd -P`/workshop.vdf +quit
+        ~/Steam/steamcmd.sh +login $STEAM_USERNAME $STEAM_PASSWORD +workshop_build_item `pwd -P`/${{ inputs.id }}.vdf +quit
+      working-directory: /tmp/addon
 
     - name: Print Errors
       if: failure()
