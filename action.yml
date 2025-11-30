@@ -17,6 +17,10 @@ inputs:
     description: "Path to folder containing addon files"
     required: false
     default: ${{ github.workspace }}
+  dry-run:
+    description: "If true, the action will only simulate the upload without actually performing it"
+    required: false
+    default: "false"
 
 runs:
   using: "composite"
@@ -66,6 +70,7 @@ runs:
 
     - name: Run SteamCMD
       shell: bash
+      if: ${{ inputs.dry-run != 'true' }}
       run: |
         ~/Steam/steamcmd.sh +login $STEAM_USERNAME $STEAM_PASSWORD +workshop_build_item `pwd -P`/${{ inputs.id }}.vdf +quit
       working-directory: /tmp/addon
