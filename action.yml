@@ -8,7 +8,7 @@ branding:
 inputs:
   id:
     description: "Workshop item id"
-    required: true
+    required: false
   changelog:
     description: "Changelog"
     required: false
@@ -25,6 +25,14 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Validate inputs
+      shell: bash
+      run: |
+        if [ "${{ inputs.dry-run }}" != "true" ] && [ -z "${{ inputs.id }}" ]; then
+          echo "Error: 'id' input must be provided when 'dry-run' is false."
+          exit 1
+        fi
+
     - name: Cache SteamCMD
       id: cache-steamcmd
       uses: actions/cache@v4
@@ -50,10 +58,6 @@ runs:
         mkdir -p /tmp/addon
         /tmp/fastgmad/fastgmad create -folder . -out /tmp/addon/${{ inputs.id }}.gma
       working-directory: ${{ inputs.folder }}
-    - name: Run gma packer
-      shell: bash
-      run: |
-        lua ${{ github.action_path }}/gma.lua ${{ inputs.id }}.gma ${{ inputs.config }}
 
     - name: Create .vdf file
       shell: bash
